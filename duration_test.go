@@ -73,6 +73,18 @@ func TestParse(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:    "no unit after prefix P",
+			args:    args{d: "P6"},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "no unit after valid sub-prefix",
+			args:    args{d: "P7Y4"},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
