@@ -2,6 +2,7 @@ package duration
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -12,28 +13,28 @@ func TestParse(t *testing.T) {
 		d string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *Duration
-		wantErr bool
+		name         string
+		args         args
+		want         *Duration
+		errorMatchFn func(e error) bool
 	}{
 		{
-			name:    "invalid-duration-1",
-			args:    args{d: "T0S"},
-			want:    nil,
-			wantErr: true,
+			name:         "invalid-duration-1",
+			args:         args{d: "T0S"},
+			want:         nil,
+			errorMatchFn: func(e error) bool { return errors.Is(e, ErrUnexpectedInput) },
 		},
 		{
-			name:    "invalid-duration-2",
-			args:    args{d: "P-T0S"},
-			want:    nil,
-			wantErr: true,
+			name:         "invalid-duration-2",
+			args:         args{d: "P-T0S"},
+			want:         nil,
+			errorMatchFn: func(e error) bool { return errors.Is(e, ErrUnexpectedInput) },
 		},
 		{
-			name:    "invalid-duration-3",
-			args:    args{d: "PT0SP0D"},
-			want:    nil,
-			wantErr: true,
+			name:         "invalid-duration-3",
+			args:         args{d: "PT0SP0D"},
+			want:         nil,
+			errorMatchFn: func(e error) bool { return errors.Is(e, ErrUnexpectedInput) },
 		},
 		{
 			name: "period-only",
@@ -41,7 +42,7 @@ func TestParse(t *testing.T) {
 			want: &Duration{
 				Years: 4,
 			},
-			wantErr: false,
+			errorMatchFn: func(e error) bool { return e == nil },
 		},
 		{
 			name: "time-only-decimal",
@@ -49,7 +50,7 @@ func TestParse(t *testing.T) {
 			want: &Duration{
 				Seconds: 2.5,
 			},
-			wantErr: false,
+			errorMatchFn: func(e error) bool { return e == nil },
 		},
 		{
 			name: "full",
@@ -62,7 +63,7 @@ func TestParse(t *testing.T) {
 				Minutes: 30,
 				Seconds: 5.5,
 			},
-			wantErr: false,
+			errorMatchFn: func(e error) bool { return e == nil },
 		},
 		{
 			name: "negative",
@@ -71,26 +72,26 @@ func TestParse(t *testing.T) {
 				Minutes:  5,
 				Negative: true,
 			},
-			wantErr: false,
+			errorMatchFn: func(e error) bool { return e == nil },
 		},
 		{
-			name:    "no unit after prefix P",
-			args:    args{d: "P6"},
-			want:    nil,
-			wantErr: true,
+			name:         "no unit after prefix P",
+			args:         args{d: "P6"},
+			want:         nil,
+			errorMatchFn: func(e error) bool { return errors.Is(e, ErrIncompleteExpr) },
 		},
 		{
-			name:    "no unit after valid sub-prefix",
-			args:    args{d: "P7Y4"},
-			want:    nil,
-			wantErr: true,
+			name:         "no unit after valid sub-prefix",
+			args:         args{d: "P7Y4"},
+			want:         nil,
+			errorMatchFn: func(e error) bool { return errors.Is(e, ErrIncompleteExpr) },
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Parse(tt.args.d)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
+			if !tt.errorMatchFn(err) {
+				t.Errorf("error %q doesn't match the expected", err)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
