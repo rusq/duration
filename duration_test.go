@@ -12,6 +12,15 @@ func TestParse(t *testing.T) {
 	type args struct {
 		d string
 	}
+	var (
+		noError    = func(e error) bool { return e == nil }
+		newMatchFn = func(expected error) func(e error) bool {
+			return func(e error) bool {
+				return errors.Is(e, expected)
+			}
+		}
+	)
+
 	tests := []struct {
 		name         string
 		args         args
@@ -22,19 +31,19 @@ func TestParse(t *testing.T) {
 			name:         "invalid-duration-1",
 			args:         args{d: "T0S"},
 			want:         nil,
-			errorMatchFn: func(e error) bool { return errors.Is(e, ErrUnexpectedInput) },
+			errorMatchFn: newMatchFn(ErrUnexpectedInput),
 		},
 		{
 			name:         "invalid-duration-2",
 			args:         args{d: "P-T0S"},
 			want:         nil,
-			errorMatchFn: func(e error) bool { return errors.Is(e, ErrUnexpectedInput) },
+			errorMatchFn: newMatchFn(ErrUnexpectedInput),
 		},
 		{
 			name:         "invalid-duration-3",
 			args:         args{d: "PT0SP0D"},
 			want:         nil,
-			errorMatchFn: func(e error) bool { return errors.Is(e, ErrUnexpectedInput) },
+			errorMatchFn: newMatchFn(ErrUnexpectedInput),
 		},
 		{
 			name: "period-only",
@@ -42,7 +51,7 @@ func TestParse(t *testing.T) {
 			want: &Duration{
 				Years: 4,
 			},
-			errorMatchFn: func(e error) bool { return e == nil },
+			errorMatchFn: noError,
 		},
 		{
 			name: "time-only-decimal",
@@ -50,7 +59,7 @@ func TestParse(t *testing.T) {
 			want: &Duration{
 				Seconds: 2.5,
 			},
-			errorMatchFn: func(e error) bool { return e == nil },
+			errorMatchFn: noError,
 		},
 		{
 			name: "full",
@@ -63,7 +72,7 @@ func TestParse(t *testing.T) {
 				Minutes: 30,
 				Seconds: 5.5,
 			},
-			errorMatchFn: func(e error) bool { return e == nil },
+			errorMatchFn: noError,
 		},
 		{
 			name: "negative",
@@ -72,19 +81,19 @@ func TestParse(t *testing.T) {
 				Minutes:  5,
 				Negative: true,
 			},
-			errorMatchFn: func(e error) bool { return e == nil },
+			errorMatchFn: noError,
 		},
 		{
 			name:         "no unit after prefix P",
 			args:         args{d: "P6"},
 			want:         nil,
-			errorMatchFn: func(e error) bool { return errors.Is(e, ErrIncompleteExpr) },
+			errorMatchFn: newMatchFn(ErrIncompleteExpr),
 		},
 		{
 			name:         "no unit after valid sub-prefix",
 			args:         args{d: "P7Y4"},
 			want:         nil,
-			errorMatchFn: func(e error) bool { return errors.Is(e, ErrIncompleteExpr) },
+			errorMatchFn: newMatchFn(ErrIncompleteExpr),
 		},
 	}
 	for _, tt := range tests {
